@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from ast import Raise
 import errno
 import socket
 import struct
@@ -13,8 +14,7 @@ _global_sender = None
 
 
 def _set_global_sender(sender):  # pragma: no cover
-    """ [For testing] Function to set global sender directly
-    """
+    """[For testing] Function to set global sender directly"""
     global _global_sender
     _global_sender = sender
 
@@ -35,7 +35,7 @@ def close():  # pragma: no cover
 class EventTime(msgpack.ExtType):
     def __new__(cls, timestamp):
         seconds = int(timestamp)
-        nanoseconds = int(timestamp % 1 * 10 ** 9)
+        nanoseconds = int(timestamp % 1 * 10**9)
         return super(EventTime, cls).__new__(
             cls,
             code=0,
@@ -44,17 +44,19 @@ class EventTime(msgpack.ExtType):
 
 
 class FluentSender(object):
-    def __init__(self,
-                 tag,
-                 host='localhost',
-                 port=24224,
-                 bufmax=1 * 1024 * 1024,
-                 timeout=3.0,
-                 verbose=False,
-                 buffer_overflow_handler=None,
-                 nanosecond_precision=False,
-                 msgpack_kwargs=None,
-                 **kwargs):
+    def __init__(
+        self,
+        tag,
+        host="localhost",
+        port=24224,
+        bufmax=1 * 1024 * 1024,
+        timeout=3.0,
+        verbose=False,
+        buffer_overflow_handler=None,
+        nanosecond_precision=False,
+        msgpack_kwargs=None,
+        **kwargs
+    ):
         """
         :param kwargs: This kwargs argument is not used in __init__. This will be removed in the next major version.
         """
@@ -88,23 +90,28 @@ class FluentSender(object):
             bytes_ = self._make_packet(label, timestamp, data)
         except Exception as e:
             self.last_error = e
-            bytes_ = self._make_packet(label, timestamp,
-                                       {"level": "CRITICAL",
-                                        "message": "Can't output to log",
-                                        "traceback": traceback.format_exc()})
+            bytes_ = self._make_packet(
+                label,
+                timestamp,
+                {
+                    "level": "CRITICAL",
+                    "message": "Can't output to log",
+                    "traceback": traceback.format_exc(),
+                },
+            )
         return self._send(bytes_)
 
     @property
     def last_error(self):
-        return getattr(self._last_error_threadlocal, 'exception', None)
+        return getattr(self._last_error_threadlocal, "exception", None)
 
     @last_error.setter
     def last_error(self, err):
         self._last_error_threadlocal.exception = err
 
     def clear_last_error(self, _thread_id=None):
-        if hasattr(self._last_error_threadlocal, 'exception'):
-            delattr(self._last_error_threadlocal, 'exception')
+        if hasattr(self._last_error_threadlocal, "exception"):
+            delattr(self._last_error_threadlocal, "exception")
 
     def close(self):
         with self.lock:
@@ -121,10 +128,14 @@ class FluentSender(object):
             self.pendings = None
 
     def _make_packet(self, label, timestamp, data):
-        if label:
-            tag = '.'.join((self.tag, label))
-        else:
+        if self.tag is not None and label:
+            tag = ".".join((self.tag, label))
+        elif self.tag is not None:
             tag = self.tag
+        elif label:
+            tag = label
+        else:
+            Raise(ValueError("tag and label can not both be None"))
         packet = (tag, timestamp, data)
         if self.verbose:
             print(packet)
@@ -174,7 +185,7 @@ class FluentSender(object):
                     raise
                 return
 
-            if recvd == b'':
+            if recvd == b"":
                 raise socket.error(errno.EPIPE, "Broken pipe")
         finally:
             self.socket.settimeout(self.timeout)
@@ -196,10 +207,10 @@ class FluentSender(object):
     def _reconnect(self):
         if not self.socket:
             try:
-                if self.host.startswith('unix://'):
+                if self.host.startswith("unix://"):
                     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                     sock.settimeout(self.timeout)
-                    sock.connect(self.host[len('unix://'):])
+                    sock.connect(self.host[len("unix://") :])
                 else:
                     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     sock.settimeout(self.timeout)
