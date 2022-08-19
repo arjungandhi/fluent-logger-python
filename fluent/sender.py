@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from ast import Raise
 import errno
 import socket
 import struct
@@ -135,7 +134,7 @@ class FluentSender(object):
         elif label:
             tag = label
         else:
-            Raise(ValueError("tag and label can not both be None"))
+            raise ValueError("tag and label can not both be None")
         packet = (tag, timestamp, data)
         if self.verbose:
             print(packet)
